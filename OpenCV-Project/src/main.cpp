@@ -25,7 +25,7 @@ struct HSV{
 };;
 
 
-cv::Mat PreProcessImage(const cv::Mat&);
+cv::Mat PreProcessImage(const cv::Mat&, int);
 std::vector<cv::Point> sortContourPoints(const std::vector<cv::Point>& contour);
 std::vector<cv::Point> findContours(const cv::Mat&, std::function<int(const std::vector<std::vector<cv::Point>>&)> callback);
 void DrawPoints(const std::vector<cv::Point>& points, cv::Mat& img);
@@ -35,7 +35,7 @@ int main() {
 
 
 	cv::Mat img;
-	img = cv::imread("../Resource/paper.jpg");
+	img = cv::imread("../Resource/paper2.jpg");
 
 	if (img.empty()) {
 		std::cerr << "Error: Could not load image!\n";
@@ -43,26 +43,36 @@ int main() {
 	}
 
 	cv::resize(img, img, cv::Size(), 0.5, 0.5);
-	cv::Mat pImg = PreProcessImage(img);
+	int attempts = 5; //number of attempts with different preprocessing
+	int areaThreshold = (img.rows * img.cols) / 16; //minimum area of the rectangle to be detected
+	
+	std::vector<cv::Point> result;
+	for (int n{}; n < attempts*2; n+=2) {
+		cv::Mat pImg = PreProcessImage(img, 5 + n);
 
-	auto getLargestRectangleContour = [&](const std::vector<std::vector<cv::Point>>& contours){
-		int largestIndex = -1;
-		cv::drawContours(img, contours, -1, cv::Scalar(255.f, 0.f, 0.f), 3);
-		double largestArea = 0.0;
-		for (int i = 0; i < contours.size(); ++i) {
+		auto getLargestRectangleContour = [&](const std::vector<std::vector<cv::Point>>& contours) {
+			int largestIndex = -1;
+			cv::drawContours(img, contours, -1, cv::Scalar(255.f, 0.f, 0.f), 3);
+			double largestArea = 0.0;
+			for (int i = 0; i < contours.size(); ++i) {
 
-			if (contours[i].size() != 4) continue;
-			
-			double area = cv::contourArea(contours[i]);
-			if (area > largestArea) {
-				largestArea = area;
-				largestIndex = i;
+				if (contours[i].size() != 4) continue;
+
+				double area = cv::contourArea(contours[i]);
+				if (area > areaThreshold && area > largestArea) {
+					largestArea = area;
+					largestIndex = i;
+				}
 			}
-		}
-		return largestIndex;
-	};
+			return largestIndex;
+			};
+		result = findContours(pImg, getLargestRectangleContour);
 
-	auto& result = findContours(pImg, getLargestRectangleContour);
+		if (!result.empty()) break;
+	}
+	
+	
+	
 
 	if (result.size() > 0) {
 		std::vector<std::vector<cv::Point>> contoursVec = { result };
@@ -141,14 +151,14 @@ int main() {
 	return 0;
 }
 
-cv::Mat PreProcessImage(const cv::Mat& img) {
+cv::Mat PreProcessImage(const cv::Mat& img, int blurVal) {
 	cv::Mat gray,binary, blur, edges;
 
 	// 1. Convert to grayscale
 	cv::cvtColor(img, gray, cv::COLOR_BGR2GRAY);
-	cv::equalizeHist(gray, gray);
+	//cv::equalizeHist(gray, gray);
 	// 2. Reduce noise (Gaussian blur or bilateral)
-	cv::GaussianBlur(gray, blur, cv::Size(11, 11), 0);
+	cv::GaussianBlur(gray, blur, cv::Size(blurVal, blurVal), 0);
 	//cv::bilateralFilter(gray, blur, 9, 75, 75);
 
 	// 3. Adaptive threshold or Canny edge
