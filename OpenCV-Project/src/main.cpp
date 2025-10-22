@@ -35,7 +35,7 @@ int main() {
 
 
 	cv::Mat img;
-	img = cv::imread("../Resource/paper2.jpg");
+	img = cv::imread("../Resource/paper.jpg");
 
 	if (img.empty()) {
 		std::cerr << "Error: Could not load image!\n";
@@ -54,7 +54,6 @@ int main() {
 			if (contours[i].size() != 4) continue;
 			
 			double area = cv::contourArea(contours[i]);
-			std::cout << area << std::endl;
 			if (area > largestArea) {
 				largestArea = area;
 				largestIndex = i;
@@ -110,6 +109,7 @@ int main() {
 			if (ri != nullptr) {
 				do {
 					const char* word = ri->GetUTF8Text(level);
+					if (word == nullptr)continue;
 					float conf = ri->Confidence(level);
 					int x1, y1, x2, y2;
 					ri->BoundingBox(level, &x1, &y1, &x2, &y2);
@@ -142,22 +142,25 @@ int main() {
 }
 
 cv::Mat PreProcessImage(const cv::Mat& img) {
-	cv::Mat gray, blur, edges;
+	cv::Mat gray,binary, blur, edges;
 
 	// 1. Convert to grayscale
 	cv::cvtColor(img, gray, cv::COLOR_BGR2GRAY);
-
+	cv::equalizeHist(gray, gray);
 	// 2. Reduce noise (Gaussian blur or bilateral)
-	cv::GaussianBlur(gray, blur, cv::Size(5, 3), 0);
+	cv::GaussianBlur(gray, blur, cv::Size(11, 11), 0);
 	//cv::bilateralFilter(gray, blur, 9, 75, 75);
 
 	// 3. Adaptive threshold or Canny edge
 	cv::Mat edges1, edges2;
-	cv::Canny(blur, edges1, 50, 150);
+	cv::Canny(blur, edges1, 0, 200);
 
 	// 4. Optional: Morphological closing to fill gaps
-	cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3));
+	cv::Mat kernel = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5));
 	cv::morphologyEx(edges1, edges2, cv::MORPH_CLOSE, kernel);
+
+
+	cv::imshow("preprocessed window", edges2);
 
 	return edges2;
 }
