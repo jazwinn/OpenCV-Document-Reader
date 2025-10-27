@@ -11,6 +11,8 @@
 #include <vector>
 #include <functional>
 
+#define CONFIDENCE_THRESHOLD 90.0f
+
 
 
 namespace {
@@ -52,7 +54,7 @@ int main() {
 
 		auto getLargestRectangleContour = [&](const std::vector<std::vector<cv::Point>>& contours) {
 			int largestIndex = -1;
-			cv::drawContours(img, contours, -1, cv::Scalar(255.f, 0.f, 0.f), 3);
+			//cv::drawContours(img, contours, -1, cv::Scalar(255.f, 0.f, 0.f), 3);
 			double largestArea = 0.0;
 			for (int i = 0; i < contours.size(); ++i) {
 
@@ -121,10 +123,19 @@ int main() {
 					const char* word = ri->GetUTF8Text(level);
 					if (word == nullptr)continue;
 					float conf = ri->Confidence(level);
-					int x1, y1, x2, y2;
-					ri->BoundingBox(level, &x1, &y1, &x2, &y2);
-					std::cout << "Word: " << word << " [" << x1 << "," << y1 << "," << x2 << "," << y2
-						<< "] Conf: " << conf << "\n";
+					if(conf > 50.0f) //confidence threshold
+					{
+						int x1, y1, x2, y2;
+						ri->BoundingBox(level, &x1, &y1, &x2, &y2);
+						std::cout << "Word: " << word << " [" << x1 << "," << y1 << "," << x2 << "," << y2
+							<< "] Conf: " << conf << "\n";
+
+
+						cv::rectangle(warpedImg, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(0.f, 255.f, 0.f), 2);
+						cv::putText(warpedImg, word, cv::Point(x1, y1 - 10), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0.f, 0.f, 255.f), 2);
+					}
+
+
 					delete[] word;
 				} while (ri->Next(level));
 			}
