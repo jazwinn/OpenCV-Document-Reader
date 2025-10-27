@@ -5,6 +5,11 @@ This project detects document edges, warps the perspective, and extracts text us
 
 ---
 
+## Preview
+<img width="1199" height="829" alt="Screenshot 2025-10-27 120200" src="https://github.com/user-attachments/assets/b691d00c-8af2-4fdd-a24d-1aad98e23254" />
+
+
+
 ## Features
 
 - Automatic **document edge detection** and perspective correction  
